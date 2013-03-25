@@ -1,0 +1,155 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>GraphicFill Example</title>
+        
+        <link rel="stylesheet" href="../theme/default/style.css" type="text/css" />
+        <link rel="stylesheet" href="style.css" type="text/css" />
+        <style type="text/css">
+            #controlToggle li {
+                list-style: none;
+            }
+            p {
+                width: 512px;
+            }
+
+            /* avoid pink tiles */
+            .olImageLoadError {
+                background-color: transparent !important;
+            }
+        </style>
+        <script src="../lib/OpenLayers.js"></script>
+        <script type="text/javascript">
+			var map, drawControls, polygonLayer;
+			var button, input, format;
+			
+			function init(){
+				map = new OpenLayers.Map('map');
+
+                var wmsLayer = new OpenLayers.Layer.WMS( "OpenLayers WMS",
+                    "http://vmap0.tiles.osgeo.org/wms/vmap0?", {layers: 'basic'});
+
+				// allow testing of specific renderers via "?renderer=Canvas", etc
+                var renderer = OpenLayers.Util.getParameters(window.location.href).renderer;
+                renderer = (renderer) ? [renderer] : OpenLayers.Layer.Vector.prototype.renderers;
+				
+                polygonLayer = new OpenLayers.Layer.Vector("Polygon Layer", { renderers: renderer });
+
+                map.addLayers([wmsLayer, polygonLayer]);
+                map.addControl(new OpenLayers.Control.LayerSwitcher());
+                map.addControl(new OpenLayers.Control.MousePosition());
+
+                drawControls = {
+                    polygon: new OpenLayers.Control.DrawFeature(polygonLayer,
+                                OpenLayers.Handler.Polygon)
+                };
+
+                for(var key in drawControls) {
+                    map.addControl(drawControls[key]);
+                }
+
+                map.setCenter(new OpenLayers.LonLat(0, 0), 3);
+
+                button = document.getElementById("button");
+				input = document.getElementById("input");
+				button.onclick = function() {
+					var str = input.value;
+					format = new OpenLayers.Format.SLD();
+					obj = format.read(str);
+					if (obj && obj.namedLayers) {
+						for (var p in obj.namedLayers) {
+							polygonLayer.styleMap.styles["default"] = obj.namedLayers[p].userStyles[0];
+							polygonLayer.redraw();
+							break;
+						}
+					}
+				}
+				
+				button.onclick();
+				
+				var polygonToggle = document.getElementById('polygonToggle');
+				polygonToggle.checked = true;
+				toggleControl(polygonToggle);
+            }
+
+            function toggleControl(element) {
+                for(key in drawControls) {
+                    var control = drawControls[key];
+                    if(element.value == key && element.checked) {
+                        control.activate();
+                    } else {
+                        control.deactivate();
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body onload="init()">
+        <h1 id="title">OpenLayers GraphicFill Example</h1>
+
+        <div id="tags"></div>
+
+        <p id="shortdesc">
+            Demonstrate GraphicFill for polygons.
+        </p>
+
+        <div id="map" class="smallmap"></div>
+    
+        <ul id="controlToggle">
+            <li>
+                <input type="radio" name="type" value="none" id="noneToggle"
+                       onclick="toggleControl(this);" checked="checked" />
+                <label for="noneToggle">navigate</label>
+            </li>
+            <li>
+                <input type="radio" name="type" value="polygon" id="polygonToggle" onclick="toggleControl(this);" />
+                <label for="polygonToggle">draw polygon</label>
+            </li>
+        </ul>
+		
+		<textarea id="input" style="width:512px; height: 300px;" wrap="off">
+<?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?>
+<sld:StyledLayerDescriptor version="1.0.0" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/sld ./Sld/StyledLayerDescriptor.xsd">
+	<sld:NamedLayer>
+		<sld:Name>Polygon</sld:Name>
+		<sld:UserStyle>
+			<sld:Name>Polygon</sld:Name>
+			<sld:FeatureTypeStyle>
+				<sld:FeatureTypeName>Polygon</sld:FeatureTypeName>
+				<sld:Rule>
+					<sld:Name>Polygon</sld:Name>
+					<sld:Title>Polygon</sld:Title>
+					<sld:PolygonSymbolizer>
+						<sld:Fill>
+							<sld:GraphicFill>
+								<sld:Graphic>
+									<sld:ExternalGraphic>
+										<sld:OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="graphicfill.png"/>
+										<sld:Format>image/png</sld:Format>
+										</sld:ExternalGraphic>
+									<sld:Size>20</sld:Size>
+								</sld:Graphic>
+							</sld:GraphicFill>
+						</sld:Fill>
+						<sld:Stroke>
+							<sld:CssParameter name="stroke">#006666</sld:CssParameter>
+							<sld:CssParameter name="stroke-width">2</sld:CssParameter>
+							<sld:CssParameter name="stroke-opacity">1</sld:CssParameter>
+							<sld:CssParameter name="stroke-dasharray">4 4</sld:CssParameter>
+						</sld:Stroke>
+					</sld:PolygonSymbolizer>
+				</sld:Rule>
+			</sld:FeatureTypeStyle>
+		</sld:UserStyle>
+	</sld:NamedLayer>
+</sld:StyledLayerDescriptor>
+		</textarea><br>
+		
+		<input type="button" id="button" value="Apply SLD">
+
+        <div id="docs">
+			<p>
+				Example of using GraphicFill as fill in a polygon. An example SLD is already applied, but you can paste your own and apply it by pressing "Apply SLD"
+			</p>
+        </div>
+    </body>
+</html>
